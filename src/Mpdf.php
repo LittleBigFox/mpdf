@@ -2014,15 +2014,13 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 
 		/* -- END COLUMNS -- */
 
-		if (
-			!$this->tableOfContents->TOCmark
+		if (!$this->tableOfContents->TOCmark
 			&& is_array($this->HTMLFooterL)
 			&& isset($this->HTMLFooterL['h'])
 			&& $this->HTMLFooterL['h'] > 0
 		) {
 			$lastFooterHeight = $this->HTMLFooterL['h'];
-			if (
-				$this->setAutoBottomMargin
+			if ($this->setAutoBottomMargin
 				&& (!isset($this->HTMLFooterL['h_auto']) || $this->HTMLFooterL['h_auto'])
 				&& isset($this->HTMLFooterL['html'])
 			) {
@@ -2039,8 +2037,7 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 			$regularFooterHeight = 0;
 			if (is_array($regularFooter) && isset($regularFooter['h'])) {
 				$regularFooterHeight = $regularFooter['h'];
-				if (
-					$this->setAutoBottomMargin
+				if ($this->setAutoBottomMargin
 					&& (!isset($regularFooter['h_auto']) || $regularFooter['h_auto'])
 					&& isset($regularFooter['html'])
 				) {
