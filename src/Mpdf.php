@@ -2014,6 +2014,47 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 
 		/* -- END COLUMNS -- */
 
+		if (
+			!$this->tableOfContents->TOCmark
+			&& is_array($this->HTMLFooterL)
+			&& isset($this->HTMLFooterL['h'])
+			&& $this->HTMLFooterL['h'] > 0
+		) {
+			$lastFooterHeight = $this->HTMLFooterL['h'];
+			if (
+				$this->setAutoBottomMargin
+				&& (!isset($this->HTMLFooterL['h_auto']) || $this->HTMLFooterL['h_auto'])
+				&& isset($this->HTMLFooterL['html'])
+			) {
+				$lastFooterHeight = $this->_getHtmlHeight($this->HTMLFooterL['html']);
+			}
+
+			$regularFooter = null;
+			if ($this->mirrorMargins && ($this->page % 2 === 0) && is_array($this->HTMLFooterE)) {
+				$regularFooter = $this->HTMLFooterE;
+			} elseif (is_array($this->HTMLFooter)) {
+				$regularFooter = $this->HTMLFooter;
+			}
+
+			$regularFooterHeight = 0;
+			if (is_array($regularFooter) && isset($regularFooter['h'])) {
+				$regularFooterHeight = $regularFooter['h'];
+				if (
+					$this->setAutoBottomMargin
+					&& (!isset($regularFooter['h_auto']) || $regularFooter['h_auto'])
+					&& isset($regularFooter['html'])
+				) {
+					$regularFooterHeight = $this->_getHtmlHeight($regularFooter['html']);
+				}
+			}
+
+			$extraFooterHeight = max(0, $lastFooterHeight - $regularFooterHeight);
+			$spaceLeft = $this->PageBreakTrigger - $this->y;
+			if ($extraFooterHeight > 0 && $spaceLeft < $extraFooterHeight) {
+				$this->AddPage($this->CurOrientation);
+			}
+		}
+
 		// BODY Backgrounds
 		$s = '';
 
@@ -12360,6 +12401,7 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 		$height = 0;
 		if (is_array($footer) && isset($footer['html']) && $footer['html']) {
 			$Fhtml = $footer['html'];
+			$heightAuto = !isset($footer['h']);
 			if ($this->setAutoBottomMargin) {
 				if (isset($footer['h'])) {
 					$height = $footer['h'];
@@ -12369,11 +12411,13 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 			}
 		} elseif (!is_array($footer) && $footer) {
 			$Fhtml = $footer;
+			$heightAuto = true;
 			if ($this->setAutoBottomMargin) {
 				$height = $this->_getHtmlHeight($Fhtml);
 			}
 		} else {
 			$Fhtml = '';
+			$heightAuto = false;
 		}
 
 		if ($OE === 'L') {
@@ -12381,22 +12425,13 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 				$this->HTMLFooterL = [];
 				$this->HTMLFooterL['html'] = $Fhtml;
 				$this->HTMLFooterL['h'] = $height;
+				$this->HTMLFooterL['h_auto'] = $heightAuto;
 			} else {
 				$this->HTMLFooterL = '';
 			}
 
 			if ($Fhtml == '') {
 				return false;
-			}
-
-			if ($this->setAutoBottomMargin == 'pad') {
-				$bMargin = $this->margin_footer + $height + $this->orig_bMargin;
-				$this->bMargin = max($this->bMargin, $bMargin);
-				$this->PageBreakTrigger = $this->h - $this->bMargin;
-			} elseif ($this->setAutoBottomMargin == 'stretch') {
-				$bMargin = max($this->orig_bMargin, $this->margin_footer + $height + $this->autoMarginPadding);
-				$this->bMargin = max($this->bMargin, $bMargin);
-				$this->PageBreakTrigger = $this->h - $this->bMargin;
 			}
 
 			return;
@@ -12411,6 +12446,7 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 				$this->HTMLFooterE = [];
 				$this->HTMLFooterE['html'] = $Fhtml;
 				$this->HTMLFooterE['h'] = $height;
+				$this->HTMLFooterE['h_auto'] = $heightAuto;
 			} else {
 				$this->HTMLFooterE = '';
 			}
@@ -12419,6 +12455,7 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 				$this->HTMLFooter = [];
 				$this->HTMLFooter['html'] = $Fhtml;
 				$this->HTMLFooter['h'] = $height;
+				$this->HTMLFooter['h_auto'] = $heightAuto;
 			} else {
 				$this->HTMLFooter = '';
 			}
