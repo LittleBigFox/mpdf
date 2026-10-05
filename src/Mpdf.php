@@ -476,6 +476,7 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 	var $HTMLFooter;
 	var $HTMLHeaderE;
 	var $HTMLFooterE;
+	var $HTMLFooterL;
 	var $bufferoutput;
 
 	// CJK fonts
@@ -10002,6 +10003,26 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 
 	function _enddoc()
 	{
+		if (is_array($this->HTMLFooterL) && isset($this->HTMLFooterL['html']) && $this->HTMLFooterL['html']) {
+			$lastPage = $this->page;
+			if ($lastPage > 0) {
+				$OE = ($this->mirrorMargins && ($lastPage % 2 == 0)) ? 'E' : 'O';
+
+				$this->saveHTMLFooter[$lastPage][$OE]['html'] = $this->HTMLFooterL['html'];
+
+				if (!isset($this->saveHTMLFooter[$lastPage][$OE]['ml'])) {
+					$this->saveHTMLFooter[$lastPage][$OE]['ml'] = $this->lMargin;
+					$this->saveHTMLFooter[$lastPage][$OE]['mr'] = $this->rMargin;
+					$this->saveHTMLFooter[$lastPage][$OE]['mt'] = $this->tMargin;
+					$this->saveHTMLFooter[$lastPage][$OE]['mb'] = $this->bMargin;
+					$this->saveHTMLFooter[$lastPage][$OE]['mh'] = $this->margin_header;
+					$this->saveHTMLFooter[$lastPage][$OE]['mf'] = $this->margin_footer;
+					$this->saveHTMLFooter[$lastPage][$OE]['pw'] = $this->w;
+					$this->saveHTMLFooter[$lastPage][$OE]['ph'] = $this->h;
+				}
+			}
+		}
+
 		// @log Writing Headers & Footers
 
 		$this->_puthtmlheaders();
@@ -12353,6 +12374,32 @@ class Mpdf implements \Psr\Log\LoggerAwareInterface
 			}
 		} else {
 			$Fhtml = '';
+		}
+
+		if ($OE === 'L') {
+			if ($Fhtml) {
+				$this->HTMLFooterL = [];
+				$this->HTMLFooterL['html'] = $Fhtml;
+				$this->HTMLFooterL['h'] = $height;
+			} else {
+				$this->HTMLFooterL = '';
+			}
+
+			if ($Fhtml == '') {
+				return false;
+			}
+
+			if ($this->setAutoBottomMargin == 'pad') {
+				$bMargin = $this->margin_footer + $height + $this->orig_bMargin;
+				$this->bMargin = max($this->bMargin, $bMargin);
+				$this->PageBreakTrigger = $this->h - $this->bMargin;
+			} elseif ($this->setAutoBottomMargin == 'stretch') {
+				$bMargin = max($this->orig_bMargin, $this->margin_footer + $height + $this->autoMarginPadding);
+				$this->bMargin = max($this->bMargin, $bMargin);
+				$this->PageBreakTrigger = $this->h - $this->bMargin;
+			}
+
+			return;
 		}
 
 		if ($OE !== 'E') {
